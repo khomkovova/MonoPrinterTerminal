@@ -1,0 +1,15 @@
+{
+  "Databases": {
+    "MongoDb": {
+      "DatabaseName" : "monoprinter",
+      "Host": "127.0.0.1",
+      "Username": "",
+      "Password" : ""
+    }
+
+  },
+  "Api" : {
+    "Url" : "http://172.17.0.2:9999",
+    "TerminalId" : 2
+  }
+}
