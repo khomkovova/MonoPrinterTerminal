@@ -1,0 +1,6 @@
+MonoPrinterTerminal
+debug
+terminalPrivateKey.key
+terminalPublicKey.key
+terminalToken.key
+.vscode/
