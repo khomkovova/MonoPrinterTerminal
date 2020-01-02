@@ -6,9 +6,12 @@ import (
 	"MonoPrinterTerminal/constant"
 	"MonoPrinterTerminal/db"
 	"MonoPrinterTerminal/uploadFile"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
 	// "google.golang.org/api/file/v1beta1"
@@ -21,13 +24,14 @@ var mongoPrinterCollection mgo.Collection
 var wg sync.WaitGroup
 
 func main() {
-
+	printFile("5e0dc96e1449b60855a61db0")
 	err := initAll()
 	if err != nil {
 		fmt.Println(err)
 	}
-	// fmt.Println("asdfasdfasdfasdfasdf")
+	fmt.Println("asdfasdfasdfasdfasdf")
 	// testDb()
+	// testApi()
 	wg.Add(1)
 	go addNewFileCycle()
 	go priningFileCycle()
@@ -126,6 +130,7 @@ func priningFileCycle() {
 				continue
 			}
 			if time.Now().Add(constant.TIME_OVERSIGHT_FOR_PRINTING).Before(printingTime) {
+
 				continue
 			}
 			if time.Now().After(printingTime.Add(constant.TIME_RETIRED_OLD_FILE)) {
@@ -135,9 +140,19 @@ func priningFileCycle() {
 				}
 				continue
 			}
+
+			delta := time.Now().Sub(printingTime).Seconds()
+			if delta < -10 || delta > 10 {
+				fmt.Println(delta)
+				fmt.Println(time.Now().UTC().Format("2006-01-02T15:04:05"))
+				fmt.Println(printingTime.UTC().Format("2006-01-02T15:04:05"))
+				fmt.Println("Wait for a time")
+				continue
+			}
 			err, gridFile := database.GetFile(file)
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 
 			// b, err := ioutil.ReadAll(gridFile)
@@ -147,26 +162,34 @@ func priningFileCycle() {
 			prinitingFile, err := os.Create(file.UniqueId)
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 			_, err = io.Copy(prinitingFile, gridFile)
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 			prinitingFile.Close()
+			fmt.Println("*************************************************************")
+			fmt.Println("Start Print File")
+			fmt.Println("*************************************************************")
 			err = printFile(file.UniqueId)
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 			_ = os.Remove(file.UniqueId)
 
 			err = database.DeleteFile(file)
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 			file.Status = constant.STATUS_SUCCESSFUL_PRINTED
 			err = api.ChangeFileStatus(file)
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 
 		}
@@ -198,7 +221,20 @@ func retiringFile(fileInfo uploadFile.FileInfo) error {
 }
 
 func printFile(fileName string) error {
-	return nil
+	fmt.Println("File name for printing:", fileName)
+	cmd := exec.Command("bash", "-c",  "./print_file.sh " + fileName)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("cmd.Run() failed with %s\n", err)
+		return err
+	}
+	fmt.Printf("combined out:\n%s\n", string(out))
+	if strings.Contains(string(out), "Successful"){
+		fmt.Printf("combined out:\n%s\n", string(out))
+	}
+	fmt.Println("Can't print file")
+	return errors.New("")
 }
 
 
