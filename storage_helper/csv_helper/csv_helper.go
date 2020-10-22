@@ -61,6 +61,10 @@ func (csvfile * CSV) GetFilesInfo() (error, []uploadFile.FileInfo) {
 	// Open CSV file
 	f, err := os.Open(CSV_FILENAME)
 	if err != nil {
+		_, err := os.Create(CSV_FILENAME)
+		if err != nil {
+			fmt.Println(err)
+		}
 		return err, filesInfo
 	}
 	defer f.Close()

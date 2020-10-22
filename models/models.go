@@ -9,3 +9,8 @@ type Response struct {
 type GCPFile struct {
 	FileUrl string `json:"file_url"`
 }
+
+
+type FileStatus struct {
+	FileStatus string `json:"status"`
+}

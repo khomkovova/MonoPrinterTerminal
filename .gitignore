@@ -4,3 +4,11 @@ terminalPrivateKey.key
 terminalPublicKey.key
 terminalToken.key
 .vscode/
+files_db.csv
+log/
+#pdf.pdf
+*.pdf
+*.doc
+*.docx
+*.txt
+
