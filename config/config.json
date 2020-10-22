@@ -9,7 +9,10 @@
 
   },
   "Api" : {
-    "Url" : "http://127.0.0.1:9999",
+    "Url" : "https://api2.drukbox.club",
     "TerminalId" : 1
+  },
+  "GCP": {
+    "BucketUsersFiles" : "drukbox_users_files"
   }
 }

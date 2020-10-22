@@ -1,9 +1,6 @@
 package api
 
 import (
-	"MonoPrinter/rsaparser"
-	"MonoPrinterTerminal/config"
-	"MonoPrinterTerminal/uploadFile"
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
@@ -11,6 +8,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/khomkovova/MonoPrinterTerminal/config"
+	"github.com/khomkovova/MonoPrinterTerminal/helper"
+	"github.com/khomkovova/MonoPrinterTerminal/models"
+	"github.com/khomkovova/MonoPrinterTerminal/rsaparser"
+	"github.com/khomkovova/MonoPrinterTerminal/storage_helper/gcp_helper"
+	"github.com/khomkovova/MonoPrinterTerminal/uploadFile"
+	//"log"
+	"strings"
+
 	// "fmt"
 	"io/ioutil"
 	"net/http"
@@ -45,7 +52,7 @@ func (api *API) GetNewToken() error {
 		return errors.New("Bad public key")
 	}
 	layout := "2006-01-02T15:04:05"
-	message := []byte("{\"terminalId\":" + strconv.Itoa(api.TerminalId) + ", \"createDate\":\"" + time.Now().Add(time.Minute*20).Format(layout) + "\"}")
+	message := []byte("{\"terminalId\":" + strconv.Itoa(api.TerminalId) + ", \"createDate\":\"" + time.Now().Add(time.Minute*2000).Format(layout) + "\"}")
 	// fmt.Println("Plain token = " + string(message))
 	label := []byte("")
 	hash := sha256.New()
@@ -70,8 +77,8 @@ func (api *API) ChangeFileStatus(fileInfo uploadFile.FileInfo) (err error) {
 	}
 	var st status
 	st.Status = fileInfo.Status
-	dataB, err := json.Marshal(st)
 
+	dataB, err := json.Marshal(st)
 	if err != nil {
 		return errors.New("Bad json")
 	}
@@ -87,43 +94,27 @@ func (api *API) ChangeFileStatus(fileInfo uploadFile.FileInfo) (err error) {
 	if err != nil {
 		return err
 	}
-	data, _ := ioutil.ReadAll(response.Body)
+	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return err
 	}
 	if len(data) < 2 {
-		return errors.New("Response is veru small")
+		return errors.New("Response is too small, status:" + response.Status)
 	}
+	fmt.Println(string(data))
 	return nil
 }
 
 func (api *API) DownloadFile(fileInfo uploadFile.FileInfo) (err error, fileData []byte) {
-	err = api.GetNewToken()
+	err, fileData = gcp_helper.GCP_download_file(fileInfo.UniqueId)
 	if err != nil {
-		return errors.New("Token don't get "), fileData
+		return err, nil
 	}
-	link := "/api/terminal/files?uniqueid=" + fileInfo.UniqueId
-	req, err := http.NewRequest("GET", api.Url+link, nil)
-	if err != nil {
-		return err, fileData
-	}
-	cookie := http.Cookie{Name: "token", Value: api.Token}
-	req.AddCookie(&cookie)
-
-	client := &http.Client{}
-	response, err := client.Do(req)
-	if err != nil {
-		return err, fileData
-	}
-	fileData, err = ioutil.ReadAll(response.Body)
-	if err != nil {
-		return err, fileData
-	}
-
 	return nil, fileData
 }
 
 func (api *API) GetFileList() (err error, files []uploadFile.FileInfo) {
+	var responseModel models.Response
 	err = api.GetNewToken()
 	if err != nil {
 		return errors.New("Token don't get "), files
@@ -131,6 +122,7 @@ func (api *API) GetFileList() (err error, files []uploadFile.FileInfo) {
 	link := "/api/terminal/files"
 	req, err := http.NewRequest("GET", api.Url+link, nil)
 	if err != nil {
+		helper.LogErrorMsg(err, "")
 		return err, files
 	}
 	cookie := http.Cookie{Name: "token", Value: api.Token}
@@ -139,11 +131,22 @@ func (api *API) GetFileList() (err error, files []uploadFile.FileInfo) {
 	client := &http.Client{}
 	response, err := client.Do(req)
 	if err != nil {
+		helper.LogErrorMsg(err, "")
 		return err, files
 	}
 	data, _ := ioutil.ReadAll(response.Body)
-	err = json.Unmarshal(data, &files)
+	err = json.Unmarshal(data, &responseModel)
 	if err != nil {
+		helper.LogErrorMsg(err, string(data))
+		return err, files
+	}
+	if strings.Contains(responseModel.Status, "error") {
+		helper.LogErrorMsg(errors.New("error"), responseModel.StatusDescription)
+		return errors.New(responseModel.StatusDescription), files
+	}
+	err = json.Unmarshal([]byte(responseModel.Data), &files)
+	if err != nil {
+		helper.LogErrorMsg(errors.New("Bad response data"), string(responseModel.Data))
 		return err, files
 	}
 	return nil, files

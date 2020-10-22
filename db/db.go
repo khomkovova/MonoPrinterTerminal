@@ -1,15 +1,13 @@
 package db
 
 import (
-	"MonoPrinterTerminal/uploadFile"
-	"MonoPrinterTerminal/constant"
 	"errors"
 	"fmt"
+	"github.com/khomkovova/MonoPrinterTerminal/constant"
+	"github.com/khomkovova/MonoPrinterTerminal/uploadFile"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"io"
-	// "io/ioutil"
-	"os"
 )
 
 type DB struct {
@@ -44,7 +42,6 @@ func (db *DB) AddFile(newFile uploadFile.UploadFile) (err error) {
 
 	_ = mongoFile.Close()
 	_ = newFile.File.Close()
-	_ = os.Remove(newFile.Info.UniqueId)
 	err = db.MongoPrinterCollection.Insert(newFile.Info)
 	if err != nil {
 		fmt.Println("Not insert new file info")
