@@ -116,6 +116,7 @@ func (api *API) ChangeFileStatus(fileInfo uploadFile.FileInfo) (err error) {
 		helper.LogErrorMsg(errors.New("error"), responseModel.StatusDescription, loggerAPI)
 		return errors.New(responseModel.StatusDescription)
 	}
+	helper.LogInfoMsg("Status changed for file: " + fileInfo.UniqueId + " to: " + fileInfo.Status, loggerAPI)
 	return nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/khomkovova/MonoPrinterTerminal/api"
 	"github.com/khomkovova/MonoPrinterTerminal/constant"
-	"github.com/khomkovova/MonoPrinterTerminal/db"
 	"github.com/khomkovova/MonoPrinterTerminal/helper"
 	"github.com/khomkovova/MonoPrinterTerminal/storage_helper"
 	"github.com/khomkovova/MonoPrinterTerminal/storage_helper/csv_helper"
@@ -42,10 +41,7 @@ func addNewFileCycle() {
 		helper.LogErrorMsg(err, "", loggerAddNewFileCycle)
 	}
 
-	var database db.DB
-	database.MongoGridFS = mongoGridFS
-	database.MongoPrinterCollection = mongoPrinterCollection
-	var uploadFile uploadFile.UploadFile
+	var newFile uploadFile.UploadFile
 
 	for true {
 		time.Sleep(constant.TIME_OFTEN_REPEAT_ADD_NEW_FILE)
@@ -58,22 +54,22 @@ func addNewFileCycle() {
 			continue
 		}
 		//logger.Println("Files = ", files)
-		uploadFile.Info = files[0]
-		uploadFile.Info.Status = constant.STATUS_WAITING_FOR_PRINTING
+		newFile.Info = files[0]
+		newFile.Info.Status = constant.STATUS_WAITING_FOR_PRINTING
 		err, fileData := api.DownloadFile(files[0])
 		if err != nil {
 			helper.LogErrorMsg(err, "", loggerAddNewFileCycle)
 			continue
 		}
 
-		newFile, err := os.Create(uploadFile.Info.UniqueId)
+		file, err := os.Create(newFile.Info.UniqueId)
 		if err != nil {
 			helper.LogErrorMsg(err, "", loggerAddNewFileCycle)
 			continue
 		}
-		defer newFile.Close()
+		defer file.Close()
 
-		_, err = newFile.Write(fileData)
+		_, err = file.Write(fileData)
 		if err != nil {
 			helper.LogErrorMsg(err, "", loggerAddNewFileCycle)
 			continue
@@ -88,7 +84,7 @@ func addNewFileCycle() {
 		//uploadFile.File = newFile2
 
 		var storage storage_helper.Storage
-		err = storage.AddFile(uploadFile)
+		err = storage.AddFile(newFile)
 		if err != nil {
 			helper.LogErrorMsg(err, "", loggerAddNewFileCycle)
 			continue
@@ -99,18 +95,18 @@ func addNewFileCycle() {
 		//	continue
 		//}
 
-		err = api.ChangeFileStatus(uploadFile.Info)
+		err = api.ChangeFileStatus(newFile.Info)
 		if err != nil {
 			helper.LogErrorMsg(err, "Critical", loggerCritical)
 			continue
 		}
-		helper.LogInfoMsg("Successfully added file to queue :" + uploadFile.Info.UniqueId, loggerAddNewFileCycle)
-		printingTime, err := time.Parse(constant.TIME_LAYOUT, uploadFile.Info.PrintingDate)
+		helper.LogInfoMsg("Successfully added file to queue :" + newFile.Info.UniqueId, loggerAddNewFileCycle)
+		printingTime, err := time.Parse(constant.TIME_LAYOUT, newFile.Info.PrintingDate)
 		if err != nil {
 			helper.LogErrorMsg(err, "", loggerAddNewFileCycle)
 			continue
 		}
-		helper.LogInfoMsg("Printing time for " + uploadFile.Info.UniqueId + " is " +  printingTime.Local().Format("2006-01-02 15:04:05"), loggerAddNewFileCycle)
+		helper.LogInfoMsg("Printing time for " + newFile.Info.UniqueId + " is " +  printingTime.Local().Format("2006-01-02 15:04:05"), loggerAddNewFileCycle)
 	}
 
 }
@@ -193,6 +189,7 @@ func priningFileCycle() {
 				continue
 			}
 
+
 		}
 	}
 
@@ -202,12 +199,8 @@ func priningFileCycle() {
 
 func retiringFile(fileInfo uploadFile.FileInfo) error {
 	var storage storage_helper.Storage
-	err := storage.DeleteFile(fileInfo.UniqueId)
-	if err != nil {
-		return err
-	}
 	var api api.API
-	err = api.InitConfig()
+	err := api.InitConfig()
 	if err != nil {
 		return err
 	}
@@ -215,6 +208,14 @@ func retiringFile(fileInfo uploadFile.FileInfo) error {
 	err = api.ChangeFileStatus(fileInfo)
 	if err != nil {
 		return err
+	}
+	err = storage.DeleteFile(fileInfo.UniqueId)
+	if err != nil {
+		return err
+	}
+	err = os.Remove(fileInfo.UniqueId)
+	if err != nil {
+		helper.LogErrorMsg(err, "Critical", loggerCritical)
 	}
 	return nil
 }
