@@ -8,13 +8,12 @@ import (
 	"github.com/khomkovova/MonoPrinterTerminal/storage_helper"
 	"github.com/khomkovova/MonoPrinterTerminal/storage_helper/csv_helper"
 	"github.com/khomkovova/MonoPrinterTerminal/uploadFile"
+	"gopkg.in/mgo.v2"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"time"
-	// "google.golang.org/api/file/v1beta1"
-	"gopkg.in/mgo.v2"
-	"os"
 )
 
 var mongoGridFS mgo.GridFS
