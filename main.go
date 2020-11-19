@@ -221,7 +221,7 @@ func retiringFile(fileInfo uploadFile.FileInfo) error {
 
 func printFile(fileName string) error {
 	//return nil
-	cmd := exec.Command("bash", "-c",  "./print_file.sh '" + fileName + "'")
+	cmd := exec.Command("bash", "-c",  "./print_file.sh \"" + fileName + "\"")
 
 	out, err := cmd.CombinedOutput()
 	helper.LogInfoMsg("print_file.sh output: " +  string(out), loggerPriningFileCycle)

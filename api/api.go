@@ -87,7 +87,7 @@ func (api *API) ChangeFileStatus(fileInfo uploadFile.FileInfo) (err error) {
 	if err != nil {
 		return err
 	}
-	cookie := http.Cookie{Name: "token", Value: api.Token}
+	cookie := http.Cookie{Name: "terminal_token", Value: api.Token}
 	req.AddCookie(&cookie)
 
 	client := &http.Client{}
@@ -140,7 +140,7 @@ func (api *API) GetFileList() (err error, files []uploadFile.FileInfo) {
 		helper.LogErrorMsg(err, "", loggerAPI)
 		return err, files
 	}
-	cookie := http.Cookie{Name: "token", Value: api.Token}
+	cookie := http.Cookie{Name: "terminal_token", Value: api.Token}
 	req.AddCookie(&cookie)
 
 	client := &http.Client{}
