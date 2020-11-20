@@ -5,7 +5,7 @@ terminalPublicKey.key
 terminalToken.key
 .vscode/
 files_db.csv
-log/
+log/*.txt
 #pdf.pdf
 *.pdf
 *.doc
